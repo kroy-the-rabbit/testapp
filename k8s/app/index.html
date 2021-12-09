@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <title>Demo Site</title>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"> </script>
+
+    <script>
+        // Limit the number of times it refreshes the list
+        ticks = 500; 
+
+        function pullList() {
+            $.post("/getAll", function (ret) {
+                str = "<pre>";
+                $.each(ret,function (idx,item) {
+                    str += item + "<br />";
+                });
+                str += "</pre>";
+                $("#history").html(str);
+
+            });
+            
+            if (ticks > 0) {
+                setTimeout(function(){ 
+                    ticks--;
+                    pullList();
+                }, 5000);
+            }
+        }
+
+        $(function() {
+            //Store a new message
+            $(document).on("click","#sendIt",function(e){
+                postdata = $("#toPost").val();
+                $.post("/postNew",{"postdata":postdata}, function (ret) {
+                    $("#toPost").val("");
+                });
+
+                return false;
+            });
+
+            pullList();
+
+
+
+        });
+    </script>
+    </head>
+    <body>
+
+
+        <h4>The goal of this page is simple.</h4>
+        <p>
+        <ul>
+            <li>Deploy a kubernetes cluster from scratch, in a few hours in my spare time tonight.  This one is running on Proxmox, but any cloud could be dropped in.</li>
+            <li>Heavily lean on Terraform and Ansible for the initial deployment</li>
+            <li>Have a kubernetes based Python app pushed to a public repository and doing something somewhat useful</li>
+            <li>Put the whole thing on github for review.</li>
+        </ul>
+        </p>
+        <p>
+        <input type="text" max="40" id="toPost" placeholder="Enter up to 20 characters.  Be nice" /> <input type="button" value="Send It" id="sendIt" />
+
+        </p>
+        <p>
+        These are the last ten things have haven't expired from redis yet.<br />
+        <span id="history"> </span>
+        </p>
+        <h5>This page is what happens when someone like me tries to design a pretty webpage</h5>
+
+
+    </body>
+    </html>
+

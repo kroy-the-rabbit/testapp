@@ -1,0 +1,107 @@
+# Do the basics to prepare nodes
+
+- hosts: all
+  become: yes
+  tasks:
+
+    - name: Install some reqs
+      apt: name={{ item }} state=latest update_cache=yes
+      loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'python3-pip', 'virtualenv', 'python3-setuptools','nfs-common']
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+          url: https://download.docker.com/linux/ubuntu/gpg
+          state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+          repo: deb https://download.docker.com/linux/ubuntu focal stable
+          state: present
+
+    - name: Update apt and install docker-ce
+      apt: update_cache=yes name=docker-ce state=latest
+
+    - name: Delete docker.json
+      file:
+          state: absent
+          path: /etc/docker/daemon.json
+
+    - name: bugfix docker
+      blockinfile: 
+      create: yes
+      path: /etc/docker/daemon.json 
+      block: |
+          {
+              "exec-opts": ["native.cgroupdriver=systemd"]
+              }
+
+    - name: now remove ansible comments
+      lineinfile:
+          path: /etc/docker/daemon.json
+          regexp: "^#"
+          state: absent
+          backup: no
+
+    - name: restart docker 
+      systemd:
+          daemon_reload: yes
+          name: docker
+          enabled: yes
+          state: restarted
+          masked: no
+
+
+    - name: create an unprivileged user for cluster stuffs
+      user: 
+          name: kubeuser 
+          state: present
+          createhome: yes
+          shell: /bin/bash
+          groups: docker,users
+          append: yes
+
+    - name: kubeuser is able to sudo for freee
+      lineinfile:
+          dest: /etc/sudoers
+          line: 'kubeuser ALL=(ALL) NOPASSWD: ALL'
+          validate: 'visudo -cf %s'
+
+    - name: Pull down my keys
+      authorized_key:
+          user: kubeuser 
+          state: present
+          key: https://github.com/kroy-the-rabbit.keys
+
+
+    - name: add Kubernetes apt-key
+      apt_key:
+          url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+          state: present
+
+    - name: add K8S apt
+      apt_repository:
+          repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+          state: present
+          filename: 'kubernetes'
+
+    - name: install kubeadm
+      apt:
+          name: kubeadm
+          state: present
+
+    - name: install kubelet
+      apt:
+          name: kubelet
+          state: present
+          update_cache: true
+
+    - name: Get rid of swap
+      shell: "swapoff -a"
+
+- hosts: masters
+  become: yes
+  tasks:
+  - name: install kubectl
+    apt:
+        name: kubectl
+        state: present

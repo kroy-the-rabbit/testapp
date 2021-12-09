@@ -1,0 +1,22 @@
+# Need to grab the magic string from the master and spit it out to the workers
+- hosts: k8s01
+  become: yes
+  gather_facts: false
+  tasks:
+      - name: get the token 
+        shell: kubeadm token create --print-join-command
+        register: token_local
+
+      - name: set the token locally
+        set_fact:
+            token: "{{ token_local.stdout_lines[0] }}"
+
+- hosts: workers
+  become: yes
+  tasks:
+
+      - name: join the cluster	
+        shell: "{{ hostvars['k8s01'].token }} >> joined.lockfile"
+        args:
+            chdir: $HOME
+            creates: joined.lockfile

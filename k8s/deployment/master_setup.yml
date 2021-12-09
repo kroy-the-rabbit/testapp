@@ -1,0 +1,33 @@
+# Setup masters
+- hosts: masters
+  become: yes
+  tasks:
+
+      - name: initialize the cluster
+        shell: kubeadm init --pod-network-cidr=10.47.0.0/16 >> cluster_setup.lockfile
+        args:
+            chdir: $HOME
+            creates: cluster_setup.lockfile
+
+      - name: create .kube directory
+        become: yes
+        become_user: kubeuser
+        file:
+            path: $HOME/.kube
+            state: directory
+            mode: 0755
+
+      - name: copy stuff to proper directories
+        copy:
+            src: /etc/kubernetes/admin.conf
+            dest: /home/kubeuser/.kube/config
+            remote_src: yes
+            owner: kubeuser
+
+      - name: Do networking.  Flannel is good for now
+        become: yes
+        become_user: kubeuser
+        shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml >> network_setup.lockfile
+        args:
+            chdir: $HOME
+            creates: network_setup.lockfile

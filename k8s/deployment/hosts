@@ -1,0 +1,9 @@
+[masters]
+ k8s01 ansible_host=10.20.20.210 ansible_user=root
+ 
+[workers]
+ k8s02 ansible_host=10.20.20.211 ansible_user=root
+ k8s03 ansible_host=10.20.20.212 ansible_user=root
+ 
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
